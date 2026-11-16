@@ -1,21 +1,27 @@
 package com.example.ScheduleBot;
 
-
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
 
 @Service
 public class ScheduleBot extends TelegramLongPollingBot {
-    @Value("${botName}")
-    private String botName;
 
-    @Value("${token}")
-    private String token;
+    private final String botName;
+    private final String token;
+    private final MessageSender messageSender;
+
+    public ScheduleBot(
+            @Value("${botName}") String botName,
+            @Value("${token}") String token,
+            MessageSender messageSender) {
+        this.botName = botName;
+        this.token = token;
+        this.messageSender = messageSender;
+    }
 
     @Override
     public String getBotUsername() {
@@ -38,27 +44,17 @@ public class ScheduleBot extends TelegramLongPollingBot {
                 String messageText = message.getText();
                 if ("/start".equals(messageText)) {
                     responseText = "Добро пожаловать!";
+                } else if (messageText.startsWith("Кнопка ")) {
+                    responseText = "Вы нажали кнопку"; // обработка нажатия кнопки
                 } else {
                     responseText = "Вы написали: *" + messageText + "*";
                 }
+
             } else {
                 responseText = "Я понимаю только текст";
             }
 
-            sendNotification(chatId, responseText);
+            messageSender.sendNotification(this,chatId, responseText);
         }
     }
-    private void sendNotification(Long chatId, String responseText) {
-        SendMessage responseMessage = new SendMessage();
-        responseMessage.setChatId(chatId.toString());
-        responseMessage.setText(responseText);
-        responseMessage.enableMarkdown(true);
-        try {
-            execute(responseMessage);
-        } catch (TelegramApiException e) {
-            throw new IllegalStateException("Не удалось отправить сообщение", e);
-        }
-    }
-
-
 }
